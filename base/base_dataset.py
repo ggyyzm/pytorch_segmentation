@@ -53,8 +53,8 @@ class BaseDataSet(Dataset):
 
             # Center Crop
             h, w = label.shape
-            start_h = (h - self.crop_size )// 2
-            start_w = (w - self.crop_size )// 2
+            start_h = (h - self.crop_size) // 2
+            start_w = (w - self.crop_size) // 2
             end_h = start_h + self.crop_size
             end_w = start_w + self.crop_size
             image = image[start_h:end_h, start_w:end_w]
@@ -80,8 +80,8 @@ class BaseDataSet(Dataset):
             angle = random.randint(-10, 10)
             center = (w / 2, h / 2)
             rot_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-            image = cv2.warpAffine(image, rot_matrix, (w, h), flags=cv2.INTER_LINEAR)#, borderMode=cv2.BORDER_REFLECT)
-            label = cv2.warpAffine(label, rot_matrix, (w, h), flags=cv2.INTER_NEAREST)#,  borderMode=cv2.BORDER_REFLECT)
+            image = cv2.warpAffine(image, rot_matrix, (w, h), flags=cv2.INTER_LINEAR)   # borderMode=cv2.BORDER_REFLECT)
+            label = cv2.warpAffine(label, rot_matrix, (w, h), flags=cv2.INTER_NEAREST)  # borderMode=cv2.BORDER_REFLECT)
 
         # Padding to return the correct crop size
         if self.crop_size:
@@ -133,7 +133,7 @@ class BaseDataSet(Dataset):
         label = torch.from_numpy(np.array(label, dtype=np.int32)).long()
         image = Image.fromarray(np.uint8(image))
         if self.return_id:
-            return  self.normalize(self.to_tensor(image)), label, image_id
+            return self.normalize(self.to_tensor(image)), label, image_id
         return self.normalize(self.to_tensor(image)), label
 
     def __repr__(self):

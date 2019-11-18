@@ -90,11 +90,12 @@ class VOC(BaseDataLoader):
             'return_id': return_id,
             'val': val
         }
-    
+
         if split in ["train_aug", "trainval_aug", "val_aug", "test_aug"]:
             self.dataset = VOCAugDataset(**kwargs)
         elif split in ["train", "trainval", "val", "test"]:
-            self.dataset = VOCDataset(**kwargs)
-        else: raise ValueError(f"Invalid split name {split}")
+            self.dataset = VOCDataset(**kwargs)     # 将kwargs中的键值对作为参数的键值对传入
+        else:
+            raise ValueError(f"Invalid split name {split}")
         super(VOC, self).__init__(self.dataset, batch_size, shuffle, num_workers, val_split)
 

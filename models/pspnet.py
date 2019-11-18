@@ -8,6 +8,7 @@ from base import BaseModel
 from utils.helpers import initialize_weights, set_trainable
 from itertools import chain
 
+
 class _PSPModule(nn.Module):
     def __init__(self, in_channels, bin_sizes, norm_layer):
         super(_PSPModule, self).__init__()

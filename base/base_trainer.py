@@ -11,9 +11,11 @@ import utils.lr_scheduler
 from utils.sync_batchnorm import convert_model
 from utils.sync_batchnorm import DataParallelWithCallback
 
+
 def get_instance(module, name, config, *args):
     # GET THE CORRESPONDING CLASS / FCT 
     return getattr(module, config[name]['type'])(*args, **config[name]['args'])
+
 
 class BaseTrainer:
     def __init__(self, model, loss, resume, config, train_loader, val_loader=None, train_logger=None):
@@ -79,7 +81,8 @@ class BaseTrainer:
         writer_dir = os.path.join(cfg_trainer['log_dir'], self.config['name'], start_time)
         self.writer = tensorboard.SummaryWriter(writer_dir)
 
-        if resume: self._resume_checkpoint(resume)
+        if resume:
+            self._resume_checkpoint(resume)
 
     def _get_available_devices(self, n_gpu):
         sys_gpu = torch.cuda.device_count()
@@ -108,18 +111,20 @@ class BaseTrainer:
                     self.logger.info(f'         {str(k):15s}: {v}')
             
             if self.train_logger is not None:
-                log = {'epoch' : epoch, **results}
+                log = {'epoch': epoch, **results}
                 self.train_logger.add_entry(log)
 
             # CHECKING IF THIS IS THE BEST MODEL (ONLY FOR VAL)
             if self.mnt_mode != 'off' and epoch % self.config['trainer']['val_per_epochs'] == 0:
                 try:
-                    if self.mnt_mode == 'min': self.improved = (log[self.mnt_metric] < self.mnt_best)
-                    else: self.improved = (log[self.mnt_metric] > self.mnt_best)
+                    if self.mnt_mode == 'min':
+                        self.improved = (log[self.mnt_metric] < self.mnt_best)
+                    else:
+                        self.improved = (log[self.mnt_metric] > self.mnt_best)
                 except KeyError:
                     self.logger.warning(f'The metrics being tracked ({self.mnt_metric}) has not been calculated. Training stops.')
                     break
-                    
+
                 if self.improved:
                     self.mnt_best = log[self.mnt_metric]
                     self.not_improved_count = 0
@@ -177,13 +182,12 @@ class BaseTrainer:
         self.train_logger = checkpoint['logger']
         self.logger.info(f'Checkpoint <{resume_path}> (epoch {self.start_epoch}) was loaded')
 
-    def _train_epoch(self, epoch):
+    def _train_epoch(self, epoch):      # 要求在子类中一定要实现
         raise NotImplementedError
 
-    def _valid_epoch(self, epoch):
+    def _valid_epoch(self, epoch):      # 要求在子类中一定要实现
         raise NotImplementedError
 
-    def _eval_metrics(self, output, target):
+    def _eval_metrics(self, output, target):      # 要求在子类中一定要实现
         raise NotImplementedError
 
-    

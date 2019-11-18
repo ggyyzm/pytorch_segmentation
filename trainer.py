@@ -16,7 +16,8 @@ class Trainer(BaseTrainer):
         
         self.wrt_mode, self.wrt_step = 'train_', 0
         self.log_step = config['trainer'].get('log_per_iter', int(np.sqrt(self.train_loader.batch_size)))
-        if config['trainer']['log_per_iter']: self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
+        if config['trainer']['log_per_iter']:
+            self.log_step = int(self.log_step / self.train_loader.batch_size) + 1
 
         self.num_classes = self.train_loader.dataset.num_classes
 
@@ -28,7 +29,8 @@ class Trainer(BaseTrainer):
             transforms.Resize((400, 400)),
             transforms.ToTensor()])
         
-        if self.device ==  torch.device('cpu'): prefetch = False
+        if self.device == torch.device('cpu'):
+            prefetch = False
         if prefetch:
             self.train_loader = DataPrefetcher(train_loader, device=self.device)
             self.val_loader = DataPrefetcher(val_loader, device=self.device)
@@ -40,8 +42,10 @@ class Trainer(BaseTrainer):
             
         self.model.train()
         if self.config['arch']['args']['freeze_bn']:
-            if isinstance(self.model, torch.nn.DataParallel): self.model.module.freeze_bn()
-            else: self.model.freeze_bn()
+            if isinstance(self.model, torch.nn.DataParallel):
+                self.model.module.freeze_bn()
+            else:
+                self.model.freeze_bn()
         self.wrt_mode = 'train'
 
         tic = time.time()
@@ -49,7 +53,7 @@ class Trainer(BaseTrainer):
         tbar = tqdm(self.train_loader, ncols=130)
         for batch_idx, (data, target) in enumerate(tbar):
             self.data_time.update(time.time() - tic)
-            #data, target = data.to(self.device), target.to(self.device)
+            # data, target = data.to(self.device), target.to(self.device)
             self.lr_scheduler.step(epoch=epoch-1)
 
             # LOSS & OPTIMIZE
@@ -98,13 +102,12 @@ class Trainer(BaseTrainer):
             self.writer.add_scalar(f'{self.wrt_mode}/{k}', v, self.wrt_step)
         for i, opt_group in enumerate(self.optimizer.param_groups):
             self.writer.add_scalar(f'{self.wrt_mode}/Learning_rate_{i}', opt_group['lr'], self.wrt_step)
-            #self.writer.add_scalar(f'{self.wrt_mode}/Momentum_{k}', opt_group['momentum'], self.wrt_step)
+            # self.writer.add_scalar(f'{self.wrt_mode}/Momentum_{k}', opt_group['momentum'], self.wrt_step)
 
         # RETURN LOSS & METRICS
-        log = {'loss': self.total_loss.average,
-                **seg_metrics}
+        log = {'loss': self.total_loss.average, **seg_metrics}
 
-        #if self.lr_scheduler is not None: self.lr_scheduler.step()
+        # if self.lr_scheduler is not None: self.lr_scheduler.step()
         return log
 
     def _valid_epoch(self, epoch):
@@ -121,7 +124,7 @@ class Trainer(BaseTrainer):
         with torch.no_grad():
             val_visual = []
             for batch_idx, (data, target) in enumerate(tbar):
-                #data, target = data.to(self.device), target.to(self.device)
+                # data, target = data.to(self.device), target.to(self.device)
                 # LOSS
                 output = self.model(data)
                 loss = self.loss(output, target)
@@ -140,9 +143,8 @@ class Trainer(BaseTrainer):
 
                 # PRINT INFO
                 pixAcc, mIoU, _ = self._get_seg_metrics().values()
-                tbar.set_description('EVAL ({}) | Loss: {:.3f}, PixelAcc: {:.2f}, Mean IoU: {:.2f} |'.format( epoch,
-                                                self.total_loss.average,
-                                                pixAcc, mIoU))
+                tbar.set_description('EVAL ({}) | Loss: {:.3f}, PixelAcc: {:.2f}, Mean IoU: {:.2f} |'.format(epoch,
+                                                                                self.total_loss.average, pixAcc, mIoU))
 
             # WRTING & VISUALIZING THE MASKS
             val_img = []

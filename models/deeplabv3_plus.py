@@ -173,7 +173,7 @@ class Xception(nn.Module):
 
     def _load_pretrained_model(self):
         url = 'http://data.lip6.fr/cadene/pretrainedmodels/xception-b5690688.pth'
-        pretrained_weights = model_zoo.load_url(url)
+        pretrained_weights = model_zoo.load_url(url, model_dir='./pretrained')
         state_dict = self.state_dict()
         model_dict = {}
 
@@ -267,9 +267,11 @@ class ASSP(nn.Module):
     def __init__(self, in_channels, output_stride):
         super(ASSP, self).__init__()
 
-        assert output_stride in [8, 16], 'Only output strides of 8 or 16 are suported'
-        if output_stride == 16: dilations = [1, 6, 12, 18]
-        elif output_stride == 8: dilations = [1, 12, 24, 36]
+        assert output_stride in [8, 16], 'Only output strides of 8 or 16 are supported'
+        if output_stride == 16:
+            dilations = [1, 6, 12, 18]
+        elif output_stride == 8:
+            dilations = [1, 12, 24, 36]
         
         self.aspp1 = assp_branch(in_channels, 256, 1, dilation=dilations[0])
         self.aspp2 = assp_branch(in_channels, 256, 3, dilation=dilations[1])
@@ -359,7 +361,8 @@ class DeepLab(BaseModel):
         self.ASSP = ASSP(in_channels=2048, output_stride=output_stride)
         self.decoder = Decoder(low_level_channels, num_classes)
 
-        if freeze_bn: self.freeze_bn()
+        if freeze_bn:
+            self.freeze_bn()
 
     def forward(self, x):
         H, W = x.size(2), x.size(3)
@@ -382,5 +385,6 @@ class DeepLab(BaseModel):
 
     def freeze_bn(self):
         for module in self.modules():
-            if isinstance(module, nn.BatchNorm2d): module.eval()
+            if isinstance(module, nn.BatchNorm2d):
+                module.eval()
 

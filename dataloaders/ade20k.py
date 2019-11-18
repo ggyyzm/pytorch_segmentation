@@ -21,7 +21,7 @@ class ADE20KDataset(BaseDataSet):
         super(ADE20KDataset, self).__init__(**kwargs)
 
     def _set_files(self):
-        if self.split in  ["training", "validation"]:
+        if self.split in ["training", "validation"]:
             self.image_dir = os.path.join(self.root, 'images', self.split)
             self.label_dir = os.path.join(self.root, 'annotations', self.split)
             self.files = [os.path.basename(path).split('.')[0] for path in glob(self.image_dir + '/*.jpg')]

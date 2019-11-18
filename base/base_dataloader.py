@@ -4,13 +4,16 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
+
 class BaseDataLoader(DataLoader):
-    def __init__(self, dataset, batch_size, shuffle, num_workers, val_split = 0.0):
+    def __init__(self, dataset, batch_size, shuffle, num_workers, val_split=0.0):
         self.shuffle = shuffle
         self.dataset = dataset
         self.nbr_examples = len(dataset)
-        if val_split: self.train_sampler, self.val_sampler = self._split_sampler(val_split)
-        else: self.train_sampler, self.val_sampler = None, None
+        if val_split:
+            self.train_sampler, self.val_sampler = self._split_sampler(val_split)
+        else:
+            self.train_sampler, self.val_sampler = None, None
 
         self.init_kwargs = {
             'dataset': self.dataset,
@@ -19,7 +22,7 @@ class BaseDataLoader(DataLoader):
             'num_workers': num_workers,
             'pin_memory': True
         }
-        super(BaseDataLoader, self).__init__(sampler=self.train_sampler, **self.init_kwargs)
+        super(BaseDataLoader, self).__init__(sampler=self.train_sampler, drop_last=True, **self.init_kwargs)
 
     def _split_sampler(self, split):
         if split == 0.0:
@@ -43,8 +46,9 @@ class BaseDataLoader(DataLoader):
     def get_val_loader(self):
         if self.val_sampler is None:
             return None
-        #self.init_kwargs['batch_size'] = 1
+        # self.init_kwargs['batch_size'] = 1
         return DataLoader(sampler=self.val_sampler, **self.init_kwargs)
+
 
 class DataPrefetcher(object):
     def __init__(self, loader, device, stop_after=None):

@@ -11,15 +11,19 @@ from utils import Logger
 from utils.torchsummary import summary
 from trainer import Trainer
 
+config = 'config.json'
+
 
 def get_instance(module, name, config, *args):
-    # GET THE CORRESPONDING CLASS / FCT 
+    # GET THE CORRESPONDING CLASS / FCT
+    # 从module(dataloaders)中找到config[name]['type'] (class VOC();class PSPNet()),将config[name]['args']的键值对作为参数的键值对传入,args为按顺序传入
     return getattr(module, config[name]['type'])(*args, **config[name]['args'])
 
 
 def main(config, resume):
     train_logger = Logger()
 
+    # 从config.json中获取参数，创建dataloaders中相应的类并传入相应参数创建获取数据的模型，从models中获取分类模型，从utils.losses中获取loss模型
     # DATA LOADERS
     train_loader = get_instance(dataloaders, 'train_loader', config)
     val_loader = get_instance(dataloaders, 'val_loader', config)
@@ -29,7 +33,8 @@ def main(config, resume):
     print(f'\n{model}\n')
 
     # LOSS
-    loss = getattr(losses, config['loss'])(ignore_index = config['ignore_index'])
+    # 根据utils.losses中定义的类，创建config['loss']类，并传入相应参数
+    loss = getattr(losses, config['loss'])(ignore_index=config['ignore_index'])
 
     # TRAINING
     trainer = Trainer(
@@ -44,16 +49,16 @@ def main(config, resume):
     trainer.train()
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     # PARSE THE ARGS
     parser = argparse.ArgumentParser(description='PyTorch Training')
-    parser.add_argument('-c', '--config', default='config.json',type=str,
+    parser.add_argument('-c', '--config', default='config.json', type=str,
                         help='Path to the config file (default: config.json)')
     parser.add_argument('-r', '--resume', default=None, type=str,
                         help='Path to the .pth model checkpoint to resume training')
     parser.add_argument('-d', '--device', default=None, type=str,
-                           help='indices of GPUs to enable (default: all)')
-    args = parser.parse_args()
+                        help='indices of GPUs to enable (default: all)')
+    args = parser.parse_args()  # args.config == 'config.json'  args.device == None    args.resume == None
 
     config = json.load(open(args.config))
     if args.resume:
