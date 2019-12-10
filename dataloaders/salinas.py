@@ -73,5 +73,5 @@ class Salinas(BaseDataLoader):
 
         self.dataset = SalinasDataset(**kwargs)  # 将kwargs中的键值对作为参数的键值对传入
 
-        super(Salinas, self).__init__(self.dataset, batch_size, shuffle, num_workers, val_split)
+        super(Salinas, self).__init__(self.dataset, batch_size, shuffle, num_workers, val_split)    # -->BaseDataLoader
 
