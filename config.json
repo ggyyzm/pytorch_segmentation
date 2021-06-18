@@ -1,23 +1,23 @@
 {
-    "name": "PSPNet",
+    "name": "DeepLab_zm",
     "n_gpu": 1,
     "use_synch_bn": true,
 
     "arch": {
-        "type": "PSPNet",
+        "type": "DeepLab_zm",
         "args": {
             "backbone": "resnet50",
             "freeze_bn": false,
-            "in_channels": 3
+            "in_channels": 4
         }
     },
 
     "train_loader": {
-        "type": "Salinas",
+        "type": "JAN",
         "args":{
-            "data_dir": "data/salinas_seg",
-            "batch_size": 8,
-            "base_size": 512,
+            "data_dir": "/media/server123/747966f3-070a-42b3-af82-6edf8d1e1a93/zm/PycharmProjects/pytorch_segmentation-master/data/jan_seg",
+            "batch_size": 1,
+            "base_size": 400,
             "crop_size": false,
             "augment": true,
             "shuffle": true,
@@ -26,14 +26,14 @@
             "rotate": false,
             "blur": false,
             "split": "trainval",
-            "num_workers": 8
+            "num_workers": 0
         }
     },
 
     "val_loader": {
-        "type": "Salinas",
+        "type": "JAN",
         "args":{
-            "data_dir": "data/salinas_seg",
+            "data_dir": "/media/server123/747966f3-070a-42b3-af82-6edf8d1e1a93/zm/PycharmProjects/pytorch_segmentation-master/data/jan_seg",
             "batch_size": 1,
             "crop_size": false,
             "val": true,
@@ -60,13 +60,13 @@
     },
 
     "trainer": {
-        "epochs": 80,
+        "epochs": 1000,
         "save_dir": "saved/",
-        "save_period": 10,
-  
-        "monitor": "max Mean_IoU",
-        "early_stop": 10,
-        
+        "save_period": 5,
+
+        "monitor": "max Pixel_Accuracy",
+        "early_stop": 100,
+
         "tensorboard": true,
         "log_dir": "saved/runs",
         "log_per_iter": 20,

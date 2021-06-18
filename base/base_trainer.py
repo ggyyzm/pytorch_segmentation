@@ -47,15 +47,15 @@ class BaseTrainer:
         # OPTIMIZER
         if self.config['optimizer']['differential_lr']:
             if isinstance(self.model, torch.nn.DataParallel):
-                trainable_params = [{'params': filter(lambda p:p.requires_grad, self.model.module.get_decoder_params())},
-                                    {'params': filter(lambda p:p.requires_grad, self.model.module.get_backbone_params()), 
+                trainable_params = [{'params': filter(lambda p: p.requires_grad, self.model.module.get_decoder_params())},
+                                    {'params': filter(lambda p: p.requires_grad, self.model.module.get_backbone_params()),
                                     'lr': config['optimizer']['args']['lr'] / 10}]
             else:
-                trainable_params = [{'params': filter(lambda p:p.requires_grad, self.model.get_decoder_params())},
-                                    {'params': filter(lambda p:p.requires_grad, self.model.get_backbone_params()), 
+                trainable_params = [{'params': filter(lambda p: p.requires_grad, self.model.get_decoder_params())},
+                                    {'params': filter(lambda p: p.requires_grad, self.model.get_backbone_params()),
                                     'lr': config['optimizer']['args']['lr'] / 10}]
         else:
-            trainable_params = filter(lambda p:p.requires_grad, self.model.parameters())
+            trainable_params = filter(lambda p: p.requires_grad, self.model.parameters())
         self.optimizer = get_instance(torch.optim, 'optimizer', config, trainable_params)
         self.lr_scheduler = getattr(utils.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, self.epochs, len(train_loader))
 
@@ -102,6 +102,12 @@ class BaseTrainer:
         for epoch in range(self.start_epoch, self.epochs+1):
             # RUN TRAIN (AND VAL)
             results = self._train_epoch(epoch)
+
+            # LOGGING INFO
+            self.logger.info(f'\n         ## Info for epoch {epoch} ## ')
+            for k, v in results.items():
+                self.logger.info(f'         {str(k):15s}: {v}')
+
             if self.do_validation and epoch % self.config['trainer']['val_per_epochs'] == 0:
                 results = self._valid_epoch(epoch)
 
@@ -147,7 +153,7 @@ class BaseTrainer:
             'logger': self.train_logger,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
-            #'lr_scheduler': self.lr_scheduler.state_dict(),
+            # 'lr_scheduler': self.lr_scheduler.state_dict(),
             'monitor_best': self.mnt_best,
             'config': self.config
         }

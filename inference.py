@@ -15,9 +15,10 @@ from PIL import Image
 import dataloaders
 import models
 from utils.helpers import colorize_mask
+from collections import OrderedDict
 
 
-def pad_image(img: object, target_size: object) -> object:
+def pad_image(img, target_size):
     rows_to_pad = max(target_size[0] - img.shape[2], 0)
     cols_to_pad = max(target_size[1] - img.shape[3], 0)
     padded_img = F.pad(img, (0, cols_to_pad, 0, rows_to_pad), "constant", 0)
@@ -26,11 +27,11 @@ def pad_image(img: object, target_size: object) -> object:
 
 def sliding_predict(model, image, num_classes, flip=True):
     image_size = image.shape
-    tile_size = (int(image_size[2]//2.5), int(image_size[3]//2.5))
-    overlap = 1/3
+    tile_size = (int(image_size[2] // 2.5), int(image_size[3] // 2.5))
+    overlap = 1 / 3
 
     stride = ceil(tile_size[0] * (1 - overlap))
-    
+
     num_rows = int(ceil((image_size[2] - tile_size[0]) / stride) + 1)
     num_cols = int(ceil((image_size[3] - tile_size[1]) / stride) + 1)
     total_predictions = np.zeros((num_classes, image_size[2], image_size[3]))
@@ -81,11 +82,11 @@ def multi_scale_predict(model, image, scales, num_classes, device, flip=False):
 
 
 def save_images(image, mask, output_path, image_file, palette):
-	# Saves the image, the model output and the results after the post processing
+    # Saves the image, the model output and the results after the post processing
     w, h = image.size
     image_file = os.path.basename(image_file).split('.')[0]
     colorized_mask = colorize_mask(mask, palette)
-    colorized_mask.save(os.path.join(output_path, image_file+'.png'))
+    colorized_mask.save(os.path.join(output_path, image_file + '.png'))
     # output_im = Image.new('RGB', (w*2, h))
     # output_im.paste(image, (0,0))
     # output_im.paste(colorized_mask, (w,0))
@@ -101,8 +102,8 @@ def main():
     # Dataset used for training the model
     dataset_type = config['train_loader']['type']
     assert dataset_type in ['VOC', 'COCO', 'CityScapes', 'ADE20K']
-    if dataset_type == 'CityScapes': 
-        scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25] 
+    if dataset_type == 'CityScapes':
+        scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25]
     else:
         scales = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
     loader = getattr(dataloaders, config['train_loader']['type'])(**config['train_loader']['args'])
@@ -116,11 +117,23 @@ def main():
     availble_gpus = list(range(torch.cuda.device_count()))
     device = torch.device('cuda:0' if len(availble_gpus) > 0 else 'cpu')
 
-    checkpoint = torch.load(args.model)
+    # Load checkpoint
+    checkpoint = torch.load(args.model, map_location=device)
     if isinstance(checkpoint, dict) and 'state_dict' in checkpoint.keys():
         checkpoint = checkpoint['state_dict']
+    # If during training, we used data parallel
     if 'module' in list(checkpoint.keys())[0] and not isinstance(model, torch.nn.DataParallel):
-        model = torch.nn.DataParallel(model)
+        # for gpu inference, use data parallel
+        if "cuda" in device.type:
+            model = torch.nn.DataParallel(model)
+        else:
+            # for cpu inference, remove module
+            new_state_dict = OrderedDict()
+            for k, v in checkpoint.items():
+                name = k[7:]
+                new_state_dict[name] = v
+            checkpoint = new_state_dict
+    # load
     model.load_state_dict(checkpoint)
     model.to(device)
     model.eval()
@@ -134,7 +147,7 @@ def main():
         for img_file in tbar:
             image = Image.open(img_file).convert('RGB')
             input = normalize(to_tensor(image)).unsqueeze(0)
-            
+
             if args.mode == 'multiscale':
                 prediction = multi_scale_predict(model, input, scales, num_classes, device)
             elif args.mode == 'sliding':
@@ -148,7 +161,7 @@ def main():
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Inference')
-    parser.add_argument('-c', '--config', default='VOC',type=str,
+    parser.add_argument('-c', '--config', default='VOC', type=str,
                         help='The config used to train the model')
     parser.add_argument('-mo', '--mode', default='multiscale', type=str,
                         help='Mode used for prediction: either [multiscale, sliding]')
@@ -156,7 +169,7 @@ def parse_arguments():
                         help='Path to the .pth model checkpoint to be used in the prediction')
     parser.add_argument('-i', '--images', default=None, type=str,
                         help='Path to the images to be segmented')
-    parser.add_argument('-o', '--output', default='outputs', type=str,  
+    parser.add_argument('-o', '--output', default='outputs', type=str,
                         help='Output Path')
     parser.add_argument('-e', '--extension', default='jpg', type=str,
                         help='The extension of the images to be segmented')

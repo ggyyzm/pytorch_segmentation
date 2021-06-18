@@ -8,12 +8,12 @@ class Poly(_LRScheduler):
         self.cur_iter = 0
         self.N = num_epochs * iters_per_epoch
         self.warmup_iters = warmup_epochs * iters_per_epoch
-        super(Poly, self).__init__(optimizer, last_epoch)
+        super(Poly, self).__init__(optimizer, last_epoch)       # --> get_lr()
 
     def get_lr(self):
         T = self.last_epoch * self.iters_per_epoch + self.cur_iter
         factor = pow((1 - 1.0 * T / self.N), 0.9)
-        if self.warmup_iters > 0 and T < self.warmup_iters:
+        if self.warmup_iters > 0 and T < self.warmup_iters:     # learning_rate的warm_up策略
             factor = 1.0 * T / self.warmup_iters
 
         self.cur_iter %= self.iters_per_epoch
@@ -23,7 +23,7 @@ class Poly(_LRScheduler):
 
 class OneCycle(_LRScheduler):
     def __init__(self, optimizer, num_epochs, iters_per_epoch=0, last_epoch=-1,
-                    momentums = (0.85, 0.95), div_factor = 25, phase1=0.3):
+                    momentums=(0.85, 0.95), div_factor=25, phase1=0.3):
         self.iters_per_epoch = iters_per_epoch
         self.cur_iter = 0
         self.N = num_epochs * iters_per_epoch
@@ -43,7 +43,7 @@ class OneCycle(_LRScheduler):
 
         # Going from base_lr / 25 -> base_lr
         if T <= self.phase1_iters:
-            cos_anneling =  (1 + math.cos(math.pi * T / self.phase1_iters)) / 2
+            cos_anneling = (1 + math.cos(math.pi * T / self.phase1_iters)) / 2
             for i in range(len(self.optimizer.param_groups)):
                 self.optimizer.param_groups[i]['momentum'] = self.momentums[0] + self.mom_diff * cos_anneling
 
@@ -52,7 +52,7 @@ class OneCycle(_LRScheduler):
 
         # Going from base_lr -> base_lr / (25e4)
         T -= self.phase1_iters
-        cos_anneling =  (1 + math.cos(math.pi * T / self.phase2_iters)) / 2
+        cos_anneling = (1 + math.cos(math.pi * T / self.phase2_iters)) / 2
 
         for i in range(len(self.optimizer.param_groups)):
             self.optimizer.param_groups[i]['momentum'] = self.momentums[1] - self.mom_diff * cos_anneling

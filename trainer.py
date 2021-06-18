@@ -85,16 +85,27 @@ class Trainer(BaseTrainer):
                 self.wrt_step = (epoch - 1) * len(self.train_loader) + batch_idx
                 self.writer.add_scalar(f'{self.wrt_mode}/loss', loss.item(), self.wrt_step)
 
+            # # FOR EVAL
+            # seg_metrics = eval_metrics(output, target, self.num_classes)
+            # self._update_seg_metrics(*seg_metrics)
+            # pixAcc, mIoU, _ = self._get_seg_metrics().values()
+            #
+            # # PRINT INFO
+            # tbar.set_description('TRAIN ({}) | Loss: {:.4f} | Acc {:.4f} mIoU {:.4f} | B {:.2f} D {:.2f} |'.format(
+            #                                     epoch, self.total_loss.average,
+            #                                     pixAcc, mIoU,
+            #                                     self.batch_time.average, self.data_time.average))
+
             # FOR EVAL
             seg_metrics = eval_metrics(output, target, self.num_classes)
             self._update_seg_metrics(*seg_metrics)
-            pixAcc, mIoU, _ = self._get_seg_metrics().values()
-            
+            pixAcc, AA, _ = self._get_seg_metrics().values()
+
             # PRINT INFO
-            tbar.set_description('TRAIN ({}) | Loss: {:.3f} | Acc {:.2f} mIoU {:.2f} | B {:.2f} D {:.2f} |'.format(
-                                                epoch, self.total_loss.average, 
-                                                pixAcc, mIoU,
-                                                self.batch_time.average, self.data_time.average))
+            tbar.set_description('TRAIN ({}) | Loss: {:.4f} | Acc {:.4f} AA {:.4f} | B {:.2f} D {:.2f} |'.format(
+                epoch, self.total_loss.average,
+                pixAcc, AA,
+                self.batch_time.average, self.data_time.average))
 
         # METRICS TO TENSORBOARD
         seg_metrics = self._get_seg_metrics()
@@ -141,10 +152,17 @@ class Trainer(BaseTrainer):
                     output_np = output.data.max(1)[1].cpu().numpy()
                     val_visual.append([data[0].data.cpu(), target_np[0], output_np[0]])
 
+                # # PRINT INFO
+                # pixAcc, mIoU, _ = self._get_seg_metrics().values()
+                # tbar.set_description('EVAL ({}) | Loss: {:.4f}, PixelAcc: {:.4f}, Mean IoU: {:.4f} |'.format(epoch,
+                #                                                                 self.total_loss.average, pixAcc, mIoU))
+
                 # PRINT INFO
-                pixAcc, mIoU, _ = self._get_seg_metrics().values()
-                tbar.set_description('EVAL ({}) | Loss: {:.3f}, PixelAcc: {:.2f}, Mean IoU: {:.2f} |'.format(epoch,
-                                                                                self.total_loss.average, pixAcc, mIoU))
+                pixAcc, AA, _ = self._get_seg_metrics().values()
+                tbar.set_description('EVAL ({}) | Loss: {:.4f}, PixelAcc: {:.4f}, Average Accuracy: {:.4f} |'.format(epoch,
+                                                                                                             self.total_loss.average,
+                                                                                                             pixAcc,
+                                                                                                             AA))
 
             # WRTING & VISUALIZING THE MASKS
             val_img = []
@@ -177,21 +195,23 @@ class Trainer(BaseTrainer):
         self.batch_time = AverageMeter()
         self.data_time = AverageMeter()
         self.total_loss = AverageMeter()
-        self.total_inter, self.total_union = 0, 0
+        # self.total_inter, self.total_union = 0, 0
+        self.total_inter, self.total_lab = 0, 0
         self.total_correct, self.total_label = 0, 0
 
-    def _update_seg_metrics(self, correct, labeled, inter, union):
+    def _update_seg_metrics(self, correct, labeled, inter, lab):
         self.total_correct += correct
         self.total_label += labeled
         self.total_inter += inter
-        self.total_union += union
+        # self.total_union += union
+        self.total_lab += lab
 
     def _get_seg_metrics(self):
         pixAcc = 1.0 * self.total_correct / (np.spacing(1) + self.total_label)
-        IoU = 1.0 * self.total_inter / (np.spacing(1) + self.total_union)
-        mIoU = IoU.mean()
+        Class_Acc = 1.0 * self.total_inter / (np.spacing(1) + self.total_lab)
+        AA = Class_Acc.mean()
         return {
-            "Pixel_Accuracy": np.round(pixAcc, 3),
-            "Mean_IoU": np.round(mIoU, 3),
-            "Class_IoU": dict(zip(range(self.num_classes), np.round(IoU, 3)))
+            "Pixel_Accuracy": np.round(pixAcc, 4),
+            "Average_Accuracy": np.round(AA, 4),
+            "Class_Accuracy": dict(zip(range(1, self.num_classes), np.round(Class_Acc, 4)))
         }

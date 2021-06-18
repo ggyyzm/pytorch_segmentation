@@ -14,21 +14,21 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
-class SalinasDataset(BaseDataSet):
+class JANDataset(BaseDataSet):
     """
     Pascal Voc dataset
     http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar
     """
 
     def __init__(self, **kwargs):
-        self.num_classes = 17
+        self.num_classes = 8
         self.palette = palette.get_voc_palette(self.num_classes)
-        super(SalinasDataset, self).__init__(**kwargs)
+        super(JANDataset, self).__init__(**kwargs)
 
     def _set_files(self):
-        self.root = os.path.join(self.root, 'salinas')
-        self.image_dir = os.path.join(self.root, '20200114_204d_200pclassTrainingset')
-        self.label_dir = os.path.join(self.root, '20200114_204d_200pclassTrainingsetgt')
+        self.root = os.path.join(self.root, 'jan')
+        self.image_dir = os.path.join(self.root, '20200114')
+        self.label_dir = os.path.join(self.root, '20200114gt')
 
         file_list = os.path.join(self.root, "ImageSets/Segmentation", self.split + ".txt")
         self.files = [line.rstrip() for line in tuple(open(file_list, "r"))]
@@ -47,7 +47,7 @@ class SalinasDataset(BaseDataSet):
         return image, label, image_id
 
 
-class Salinas(BaseDataLoader):
+class JAN(BaseDataLoader):
     def __init__(self, data_dir, batch_size, split, crop_size=None, base_size=None, scale=True, num_workers=1,
                  val=False,
                  shuffle=False, flip=False, rotate=False, blur=False, augment=False, val_split=None, return_id=False):
@@ -71,7 +71,7 @@ class Salinas(BaseDataLoader):
             'val': val
         }
 
-        self.dataset = SalinasDataset(**kwargs)  # 将kwargs中的键值对作为参数的键值对传入
+        self.dataset = JANDataset(**kwargs)  # 将kwargs中的键值对作为参数的键值对传入
 
-        super(Salinas, self).__init__(self.dataset, batch_size, shuffle, num_workers, val_split)    # -->BaseDataLoader
+        super(JAN, self).__init__(self.dataset, batch_size, shuffle, num_workers, val_split)    # -->BaseDataLoader
 

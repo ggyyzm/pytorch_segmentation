@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 from torchvision import transforms
 from scipy import ndimage
+from sklearn import preprocessing
 
 
 class BaseDataSet(Dataset):
@@ -13,8 +14,8 @@ class BaseDataSet(Dataset):
                 crop_size=321, scale=True, flip=True, rotate=False, blur=False, return_id=False):
         self.root = root
         self.split = split
-        self.mean = mean
-        self.std = std
+        # self.mean = mean
+        # self.std = std
         self.augment = augment
         self.crop_size = crop_size
         if self.augment:
@@ -29,7 +30,6 @@ class BaseDataSet(Dataset):
         self.to_tensor = transforms.ToTensor()
         self.normalize = transforms.Normalize(mean, std)
         self.return_id = return_id
-
         cv2.setNumThreads(0)
 
     def _set_files(self):
@@ -119,22 +119,80 @@ class BaseDataSet(Dataset):
             ksize = ksize + 1 if ksize % 2 == 0 else ksize
             image = cv2.GaussianBlur(image, (ksize, ksize), sigmaX=sigma, sigmaY=sigma, borderType=cv2.BORDER_REFLECT_101)
         return image, label
-        
+
+    # 对image进行z-score标准化
+    def z_score_normalization(self, image, dtype, data_arrange):
+        '''
+            data_arrange == 0 <==> (height, width, band)
+                         == 1 <==> (band, height, width)(gdal)
+        '''
+        image = image.astype(np.float32)
+        if data_arrange == 0:
+            for m in range(image.shape[2]):
+                img_mean = np.mean(image[:, :, m])
+                img_std = np.std(image[:, :, m])
+                if img_std == 0.:
+                    pass
+                else:
+                    image[:, :, m] = (image[:, :, m] - img_mean) / img_std
+        elif data_arrange == 1:
+            for m in range(image.shape[0]):
+                img_mean = np.mean(image[m, :, :])
+                img_std = np.std(image[m, :, :])
+                image[m, :, :] = (image[m, :, :] - img_mean) / img_std
+        else:
+            raise AttributeError("data_arrange error!")
+
+        image = image.astype(dtype)
+        return image
+
+    # 对image进行大值标准化
+    def large_parameters_normalization(self, image, dtype, data_arrange):
+        '''
+            data_arrange == 0 <==> (height, width, band)
+                         == 1 <==> (band, height, width)(gdal)
+        '''
+        image = image.astype(np.float32)
+        if data_arrange == 0:
+            mean = np.random.randint(5000, 6000, image.shape[2]).astype(np.float32)
+            std = np.random.randint(300, 500, image.shape[2]).astype(np.float32)
+            for m in range(image.shape[2]):
+                image[:, :, m] = (image[:, :, m] - mean[m]) / std[m]
+        elif data_arrange == 1:
+            mean = np.random.randint(5000, 6000, image.shape[0]).astype(np.float32)
+            std = np.random.randint(300, 500, image.shape[0]).astype(np.float32)
+            for m in range(image.shape[0]):
+                image[m, :, :] = (image[m, :, :] - mean[m]) / std[m]
+        else:
+            raise AttributeError("data_arrange error!")
+
+        image = image.astype(dtype)
+        return image
+
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, index):
         image, label, image_id = self._load_data(index)
-        if self.val:
-            image, label = self._val_augmentation(image, label)
-        elif self.augment:
-            image, label = self._augmentation(image, label)
+
+        # if self.val:
+        #     image, label = self._val_augmentation(image, label)
+        # elif self.augment:
+        #     image, label = self._augmentation(image, label)
 
         label = torch.from_numpy(np.array(label, dtype=np.int32)).long()
-        image = Image.fromarray(np.uint8(image))
+        image = np.float32(image)
+        # z-score标准化
+        image = self.z_score_normalization(image, np.float32, data_arrange=0)
+        # 大值标准化
+        image = self.large_parameters_normalization(image, np.float32, data_arrange=0)
+        # # max-min归一化
+        # for i in range(image.shape[2]):
+        #     image[:, :, i] = (image[:, :, i] - image[:, :, i].min()) / (image[:, :, i].max() - image[:, :, i].min())
+
         if self.return_id:
-            return self.normalize(self.to_tensor(image)), label, image_id
-        return self.normalize(self.to_tensor(image)), label
+            return self.to_tensor(image), label, image_id       # self.normalize(self.to_tensor(image))
+        return self.to_tensor(image), label         # self.normalize(self.to_tensor(image))
 
     def __repr__(self):
         fmt_str = "Dataset: " + self.__class__.__name__ + "\n"
