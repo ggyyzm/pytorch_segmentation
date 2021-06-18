@@ -1,4 +1,4 @@
-# Origian code and chechpoints by Hang Zhang
+# Original code and checkpoints by Hang Zhang
 # https://github.com/zhanghang1989/PyTorch-Encoding
 
 
@@ -21,9 +21,9 @@ __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
-    'resnet50': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet50-25c4b509.zip',
-    'resnet101': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet101-2a57e44d.zip',
-    'resnet152': 'https://hangzh.s3.amazonaws.com/encoding/models/resnet152-0d43d698.zip'
+    'resnet50': 'https://s3.us-west-1.wasabisys.com/encoding/models/resnet50s-a75c83cf.zip',
+    'resnet101': 'https://s3.us-west-1.wasabisys.com/encoding/models/resnet101s-03a0f310.zip',
+    'resnet152': 'https://s3.us-west-1.wasabisys.com/encoding/models/resnet152s-36670e8b.zip'
 }
 
 
@@ -123,7 +123,6 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
     """Dilated Pre-trained ResNet Model, which preduces the stride of 8 featuremaps at conv5.
-
     Reference:
         - He, Kaiming, et al. "Deep residual learning for image recognition." CVPR. 2016.
         - Yu, Fisher, and Vladlen Koltun. "Multi-scale context aggregation by dilated convolutions."
@@ -231,11 +230,10 @@ class ResNet(nn.Module):
 
 def resnet18(pretrained=False, **kwargs):
     """Constructs a ResNet-18 model.
-
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
+    model = ResNet(BasicBlock, [2, 2, 2, 2], deep_base=False, **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet18']))
     return model
@@ -243,11 +241,10 @@ def resnet18(pretrained=False, **kwargs):
 
 def resnet34(pretrained=False, **kwargs):
     """Constructs a ResNet-34 model.
-
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
+    model = ResNet(BasicBlock, [3, 4, 6, 3], deep_base=False, **kwargs)
     if pretrained:
         model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
     return model
@@ -255,7 +252,6 @@ def resnet34(pretrained=False, **kwargs):
 
 def resnet50(pretrained=False, root='./pretrained', **kwargs):
     """Constructs a ResNet-50 model.
-
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
@@ -267,7 +263,6 @@ def resnet50(pretrained=False, root='./pretrained', **kwargs):
 
 def resnet101(pretrained=False, root='./pretrained', **kwargs):
     """Constructs a ResNet-101 model.
-
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
@@ -279,7 +274,6 @@ def resnet101(pretrained=False, root='./pretrained', **kwargs):
 
 def resnet152(pretrained=False, root='./pretrained', **kwargs):
     """Constructs a ResNet-152 model.
-
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """

@@ -12,7 +12,6 @@ from itertools import chain
 -> Dense upsampling convolution block
 '''
 
-
 class DUC(nn.Module):
     def __init__(self, in_channels, out_channles, upscale):
         super(DUC, self).__init__()
@@ -49,11 +48,9 @@ class DUC(nn.Module):
         kernel = kernel.transpose(0, 1)
         return kernel
 
-
 ''' 
 -> ResNet BackBone
 '''
-
 
 class ResNet_HDC_DUC(nn.Module):
     def __init__(self, in_channels, output_stride, pretrained=True, dilation_bigger=False):
@@ -225,6 +222,8 @@ class DeepLab_DUC_HDC(BaseModel):
         self.decoder = Decoder(low_level_channels, num_classes)
         self.DUC_out = DUC(num_classes, num_classes, 4)
         if freeze_bn: self.freeze_bn()
+        if freeze_backbone:
+            set_trainable([self.backbone], False)
 
     def forward(self, x):
         H, W = x.size(2), x.size(3)
@@ -243,4 +242,3 @@ class DeepLab_DUC_HDC(BaseModel):
     def freeze_bn(self):
         for module in self.modules():
             if isinstance(module, nn.BatchNorm2d): module.eval()
-

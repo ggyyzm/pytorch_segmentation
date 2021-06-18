@@ -13,7 +13,7 @@ from utils.sync_batchnorm import DataParallelWithCallback
 
 
 def get_instance(module, name, config, *args):
-    # GET THE CORRESPONDING CLASS / FCT 
+    # GET THE CORRESPONDING CLASS / FCT
     return getattr(module, config[name]['type'])(*args, **config[name]['args'])
 
 
@@ -47,17 +47,19 @@ class BaseTrainer:
         # OPTIMIZER
         if self.config['optimizer']['differential_lr']:
             if isinstance(self.model, torch.nn.DataParallel):
-                trainable_params = [{'params': filter(lambda p: p.requires_grad, self.model.module.get_decoder_params())},
-                                    {'params': filter(lambda p: p.requires_grad, self.model.module.get_backbone_params()),
-                                    'lr': config['optimizer']['args']['lr'] / 10}]
+                trainable_params = [
+                    {'params': filter(lambda p: p.requires_grad, self.model.module.get_decoder_params())},
+                    {'params': filter(lambda p: p.requires_grad, self.model.module.get_backbone_params()),
+                     'lr': config['optimizer']['args']['lr'] / 10}]
             else:
                 trainable_params = [{'params': filter(lambda p: p.requires_grad, self.model.get_decoder_params())},
                                     {'params': filter(lambda p: p.requires_grad, self.model.get_backbone_params()),
-                                    'lr': config['optimizer']['args']['lr'] / 10}]
+                                     'lr': config['optimizer']['args']['lr'] / 10}]
         else:
             trainable_params = filter(lambda p: p.requires_grad, self.model.parameters())
         self.optimizer = get_instance(torch.optim, 'optimizer', config, trainable_params)
-        self.lr_scheduler = getattr(utils.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, self.epochs, len(train_loader))
+        self.lr_scheduler = getattr(utils.lr_scheduler, config['lr_scheduler']['type'])(self.optimizer, self.epochs,
+                                                                                        len(train_loader))
 
         # MONITORING
         self.monitor = cfg_trainer.get('monitor', 'off')
@@ -81,8 +83,7 @@ class BaseTrainer:
         writer_dir = os.path.join(cfg_trainer['log_dir'], self.config['name'], start_time)
         self.writer = tensorboard.SummaryWriter(writer_dir)
 
-        if resume:
-            self._resume_checkpoint(resume)
+        if resume: self._resume_checkpoint(resume)
 
     def _get_available_devices(self, n_gpu):
         sys_gpu = torch.cuda.device_count()
@@ -92,22 +93,16 @@ class BaseTrainer:
         elif n_gpu > sys_gpu:
             self.logger.warning(f'Nbr of GPU requested is {n_gpu} but only {sys_gpu} are available')
             n_gpu = sys_gpu
-            
+
         device = torch.device('cuda:0' if n_gpu > 0 else 'cpu')
         self.logger.info(f'Detected GPUs: {sys_gpu} Requested: {n_gpu}')
         available_gpus = list(range(n_gpu))
         return device, available_gpus
-    
+
     def train(self):
-        for epoch in range(self.start_epoch, self.epochs+1):
+        for epoch in range(self.start_epoch, self.epochs + 1):
             # RUN TRAIN (AND VAL)
             results = self._train_epoch(epoch)
-
-            # LOGGING INFO
-            self.logger.info(f'\n         ## Info for epoch {epoch} ## ')
-            for k, v in results.items():
-                self.logger.info(f'         {str(k):15s}: {v}')
-
             if self.do_validation and epoch % self.config['trainer']['val_per_epochs'] == 0:
                 results = self._valid_epoch(epoch)
 
@@ -115,7 +110,7 @@ class BaseTrainer:
                 self.logger.info(f'\n         ## Info for epoch {epoch} ## ')
                 for k, v in results.items():
                     self.logger.info(f'         {str(k):15s}: {v}')
-            
+
             if self.train_logger is not None:
                 log = {'epoch': epoch, **results}
                 self.train_logger.add_entry(log)
@@ -128,7 +123,8 @@ class BaseTrainer:
                     else:
                         self.improved = (log[self.mnt_metric] > self.mnt_best)
                 except KeyError:
-                    self.logger.warning(f'The metrics being tracked ({self.mnt_metric}) has not been calculated. Training stops.')
+                    self.logger.warning(
+                        f'The metrics being tracked ({self.mnt_metric}) has not been calculated. Training stops.')
                     break
 
                 if self.improved:
@@ -150,15 +146,13 @@ class BaseTrainer:
         state = {
             'arch': type(self.model).__name__,
             'epoch': epoch,
-            'logger': self.train_logger,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
-            # 'lr_scheduler': self.lr_scheduler.state_dict(),
             'monitor_best': self.mnt_best,
             'config': self.config
         }
         filename = os.path.join(self.checkpoint_dir, f'checkpoint-epoch{epoch}.pth')
-        self.logger.info(f'\nSaving a checkpoint: {filename} ...') 
+        self.logger.info(f'\nSaving a checkpoint: {filename} ...')
         torch.save(state, filename)
 
         if save_best:
@@ -182,18 +176,14 @@ class BaseTrainer:
         if checkpoint['config']['optimizer']['type'] != self.config['optimizer']['type']:
             self.logger.warning({'Warning! Current optimizer is not the same as the one in the checkpoint'})
         self.optimizer.load_state_dict(checkpoint['optimizer'])
-        # if self.lr_scheduler:
-        #     self.lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
 
-        self.train_logger = checkpoint['logger']
         self.logger.info(f'Checkpoint <{resume_path}> (epoch {self.start_epoch}) was loaded')
 
-    def _train_epoch(self, epoch):      # 要求在子类中一定要实现
+    def _train_epoch(self, epoch):
         raise NotImplementedError
 
-    def _valid_epoch(self, epoch):      # 要求在子类中一定要实现
+    def _valid_epoch(self, epoch):
         raise NotImplementedError
 
-    def _eval_metrics(self, output, target):      # 要求在子类中一定要实现
+    def _eval_metrics(self, output, target):
         raise NotImplementedError
-
